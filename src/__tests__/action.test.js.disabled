@@ -1,0 +1,66 @@
+import configureMockStore from 'redux-mock-store'
+import thunk from 'redux-thunk'
+// import * as actions from '../actions'
+import {
+    USER_REQUEST,
+    USER_SUCCESS,
+    USER_FAILURE,
+    loadUser
+} from '../actions'
+import nock from 'nock'
+import { expect } from 'chai'
+
+const middlewares = [ thunk ]
+const mockStore = configureMockStore(middlewares)
+
+describe('async actions', () => {
+    afterEach(() => {
+        nock.cleanAll()
+    })
+
+    it('creates USER_SUCCESS when fetching user has been done', () => {
+        nock('http://localhost:3000/')
+        .get('/test')
+        .reply(200, {
+            entities: {
+                users: {
+                    test: {
+                        login: 'test',
+                        id: 11223344,
+                        html_url: 'https://github.com/test'
+                    }
+                }
+            }
+        })
+
+        let state = { entities: { users: {}, repos: {} } }
+        const expectedActions = [
+            {
+                type: USER_REQUEST
+            },
+            {
+                type: USER_SUCCESS,
+                payload: {
+                    entities: {
+                       users: {
+                            test: {
+                                login: 'test',
+                                id: 11223344,
+                                html_url: 'https://github.com/test'
+                            }
+                       }
+                    },
+                    nextPageUrl: null,
+                    result: 'test'
+                }
+            }
+        ]
+
+        const store = mockStore({})
+
+        return store.dispatch(loadUser('test', [ 'name' ]))
+            .then(() => { // return of async actions
+                expect(store.getActions()).to.deep.equal(expectedActions)
+            })
+    })
+})
